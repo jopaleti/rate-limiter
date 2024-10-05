@@ -57,17 +57,47 @@ func (rl *TokenBucketRateLimiter) Allow() bool {
 }
 
 // Rate Limiter in Action
+// func main() {
+// 	// Create a rate limiter allowing 5 requests per second
+// 	rateLimiter := NewTokenBucketRateLimiter(5, time.Second/5)
+
+// 	// Simulate incoming requests
+// 	for i := 0; i < 10; i++ {
+//         if rateLimiter.Allow() {
+//             fmt.Printf("Request %d allowed\n", i+1)
+//         } else {
+//             fmt.Printf("Request %d rate-limited\n", i+1)
+//         }
+//         time.Sleep(200 * time.Millisecond) // Simulate a delay between requests
+//     }
+// }
 func main() {
+	var wg sync.WaitGroup
+
 	// Create a rate limiter allowing 5 requests per second
 	rateLimiter := NewTokenBucketRateLimiter(5, time.Second/5)
 
 	// Simulate incoming requests
 	for i := 0; i < 10; i++ {
-        if rateLimiter.Allow() {
-            fmt.Printf("Request %d allowed\n", i+1)
-        } else {
-            fmt.Printf("Request %d rate-limited\n", i+1)
-        }
-        time.Sleep(200 * time.Millisecond) // Simulate a delay between requests
-    }
+		wg.Add(1) // Add a goroutine to the WaitGroup
+
+		go func(requestID int) {
+			defer wg.Done() // Ensure that Done is called when the goroutine completes
+
+			if rateLimiter.Allow() {
+				fmt.Printf("Request %d allowed\n", requestID)
+			} else {
+				fmt.Printf("Request %d rate-limited\n", requestID)
+			}
+		}(i + 1)
+		// time.Sleep(200 * time.Millisecond)
+		if i%5 == 0 {
+			time.Sleep(time.Second)
+		}
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	fmt.Println("All requests processed.")
 }
